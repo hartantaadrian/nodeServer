@@ -1,0 +1,8 @@
+{
+    "db":{
+    "user": "s1sql",
+    "password": "Password.1",
+    "server": "192.168.10.103",
+    "database": "sentinel"
+    }
+}
