@@ -4,6 +4,7 @@ const randtoken = require('rand-token');
 const sha1 = require('sha1');
 const verifyToken = require('./tokenverified')
 const unirest = require('unirest')
+const moment = require('moment');
 
 
 module.exports = function (app, db) {
@@ -139,7 +140,7 @@ module.exports = function (app, db) {
     });
 
     app.get("/getendpoint", (req, res) => {
-        //mssql.close();
+        mssql.close();
         let sms = req.query.sms;
         let app_name = sms.substring(0, 6);
 
@@ -190,7 +191,12 @@ module.exports = function (app, db) {
                                             let sms = req.query.sms
                                             let req_from = "SMS gateway"
                                             let req_to = endpoint
-                                            let trx_date = req.query.trx_date
+
+                                            let dateres = req.query.trx_date
+                                            let trx_date = new Date(dateres.substring(0, 4) + "-" + dateres.substring(4, 6) + "-" + dateres.substring(6, 8) + " " + dateres.substring(8, 10) + ":" + dateres.substring(10, 12) + ":" + dateres.substring(12, 14) + ".000")
+                                            trx_date.setHours(trx_date.getHours() + 7)
+
+                                            console.log("ssss " + trx_date)
                                             //mssql.close();
                                             let logstatement = 'insert into msg_history values (@phone,@sms,@req_from,@req_to,@trx_date)';
                                             let pstm = new mssql.PreparedStatement;
@@ -199,25 +205,26 @@ module.exports = function (app, db) {
                                             pstm.input('req_from', mssql.VarChar)
                                             pstm.input('req_to', mssql.VarChar)
                                             pstm.input('trx_date', mssql.DateTime)
-                                            pstm.prepare(logstatement,function(err) {
+                                            pstm.prepare(logstatement, function (err) {
                                                 if (err) {
                                                     console.log(err)
                                                     //mssql.close();
                                                 }
-                                                else{
-                                                    pstm.execute({ phone: phone, sms: sms,req_from: req_from, req_to: req_to, trx_date:trx_date }, (err, result) => {
+                                                else {
+                                                    console.log("asss " + trx_date)
+                                                    pstm.execute({ phone: phone, sms: sms, req_from: req_from, req_to: req_to, trx_date: trx_date }, (err, result) => {
                                                         if (err) {
                                                             console.log(err)
                                                             res.send(JSON.stringify(err))
                                                             mssql.close()
                                                         }
-                                                        else{
+                                                        else {
                                                             res.send(result)
                                                         }
                                                     })
                                                 }
                                             })
-                                          
+
                                         }
                                     })
                             }

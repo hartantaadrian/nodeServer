@@ -24,11 +24,15 @@
   "dependencies": {
     "body-parser": "^1.18.3",
     "cors": "^2.8.5",
+    "date-and-time": "^0.6.3",
     "express": "^4.16.4",
     "jsonwebtoken": "^8.4.0",
+    "moment": "^2.22.2",
     "mssql": "^4.3.0",
     "rand-token": "^0.4.0",
+    "sequelize": "^4.41.2",
     "sha1": "^1.1.1",
+    "tedious": "^2.2.4",
     "unirest": "^0.5.1"
   }
 }
