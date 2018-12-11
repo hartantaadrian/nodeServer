@@ -174,19 +174,22 @@ module.exports = function (app, db) {
                             else {
                                 //console.log("masuk sini")
                                 let endpoint = result.recordset[0].endpoint
-                                unirest.get(endpoint).query({
-                                    'msisdn': req.query.msisdn,
-                                    'trx_time': req.query.trx_time,
-                                    'trx_id': req.query.trx_id,
-                                    'sms': req.query.sms,
-                                    'oprator_code': req.query.operator_code
-                                })
+                                unirest.get(endpoint)
+                                    .query({
+                                        'msisdn': req.query.msisdn,
+                                        'trx_time': req.query.trx_time,
+                                        'trx_id': req.query.trx_id,
+                                        'sms': req.query.sms,
+                                        'oprator_code': req.query.operator_code
+                                    })
                                     .end(function (rsp) {
-                                        if (res.error) {
-                                            console.log('GET error', res.error)
+                                        if (rsp.error) {
+                                            console.log('GET error', rsp)
+                                            res.send(rsp)
                                         }
                                         else {
-                                            //
+                                            let respo = rsp
+                                           
                                             let phone = req.query.msisdn
                                             let sms = req.query.sms
                                             let req_from = "SMS gateway"
@@ -196,7 +199,7 @@ module.exports = function (app, db) {
                                             let trx_date = new Date(dateres.substring(0, 4) + "-" + dateres.substring(4, 6) + "-" + dateres.substring(6, 8) + " " + dateres.substring(8, 10) + ":" + dateres.substring(10, 12) + ":" + dateres.substring(12, 14) + ".000")
                                             trx_date.setHours(trx_date.getHours() + 7)
 
-                                            console.log("ssss " + trx_date)
+                                            //console.log("ssss " + trx_date)
                                             //mssql.close();
                                             let logstatement = 'insert into msg_history values (@phone,@sms,@req_from,@req_to,@trx_date)';
                                             let pstm = new mssql.PreparedStatement;
@@ -211,7 +214,7 @@ module.exports = function (app, db) {
                                                     //mssql.close();
                                                 }
                                                 else {
-                                                    console.log("asss " + trx_date)
+                                                    //console.log("asss " + trx_date)
                                                     pstm.execute({ phone: phone, sms: sms, req_from: req_from, req_to: req_to, trx_date: trx_date }, (err, result) => {
                                                         if (err) {
                                                             console.log(err)
@@ -219,7 +222,7 @@ module.exports = function (app, db) {
                                                             mssql.close()
                                                         }
                                                         else {
-                                                            res.send(result)
+                                                            res.send(respo)
                                                         }
                                                     })
                                                 }
@@ -235,5 +238,82 @@ module.exports = function (app, db) {
         })
     });
 
+
+    app.post("/toGateway", (req, res) => {
+        let id = req.body.id
+        let pwd = req.body.pwd
+        let msisdn = req.body.msisdn
+        let trx_date = req.body.trx_date
+        let chargingCode = req.body.chargingCode
+        let requestId = req.body.requestId
+        let requestContent = req.body.requestContent
+        let operatorCode = req.body.operatorCode
+        let sms = req.body.sms
+        let format = req.body.format
+        let channel = req.body.channel
+        let bankId = req.body.bankId
+
+        unirest.get("http://localhost:5024/")
+            .query({
+                'id': id,
+                'pwd': pwd,
+                'msisdn': msisdn,
+                'trx_date': trx_date,
+                'chargingCode': chargingCode,
+                'requestId': requestId,
+                'requestContent': requestContent,
+                'operatorCode': operatorCode,
+                'sms': sms,
+                'format': format,
+                'channel': channel,
+                'bankId': bankId
+            }).end(function (rsp) {
+                if (res.error) {
+                    console.log('GET error', res.error)
+                } else {
+
+                    mssql.connect(db, function (err) {
+                        if (err) {
+                            console.log(err);
+                        }
+                        else {
+                            let phone = msisdn
+                            let req_from = bankId
+                            let req_to = "SMS gateway"
+                            let logstatement = 'insert into msg_history values (@phone,@sms,@req_from,@req_to,@trx_date)';
+                            let pstm = new mssql.PreparedStatement;
+                            trx_date = new Date(trx_date)
+                            trx_date.setHours(trx_date.getHours() + 7)
+                            pstm.input('phone', mssql.VarChar)
+                            pstm.input('sms', mssql.VarChar)
+                            pstm.input('req_from', mssql.VarChar)
+                            pstm.input('req_to', mssql.VarChar)
+                            pstm.input('trx_date', mssql.DateTime)
+                            pstm.prepare(logstatement, function (err){
+                                if (err) {
+                                    console.log(err)
+                                    //mssql.close();
+                                }
+                                else {
+                                    //console.log("asss " + trx_date)
+                                    pstm.execute({ phone: phone, sms: sms, req_from: req_from, req_to: req_to, trx_date: trx_date }, (err, result) => {
+                                        if (err) {
+                                            console.log(err)
+                                            res.send(JSON.stringify(err))
+                                            mssql.close()
+                                        }
+                                        else {
+                                            res.send(rsp.body)
+                                        }
+                                    })
+                                }
+                            })
+                        }
+
+                    })
+                    
+                }
+            })
+    })
 
 }
