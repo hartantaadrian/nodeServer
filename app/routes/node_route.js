@@ -11,12 +11,12 @@ module.exports = function (app, db) {
 
     let refreshTokens = {}
 
-    app.get('/get', (req, res) => {
+    app.get('/getApp', (req, res) => {
         mssql.connect(db, function (err) {
             if (err) console.log(err);
             console.log(req.query)
             var request = new mssql.Request();
-            request.query("select * from [user] ", function (err, recordset) {
+            request.query("select * from msg_app ", function (err, recordset) {
                 if (err) {
                     res.send(JSON.stringify(err));
                 }
@@ -31,6 +31,74 @@ module.exports = function (app, db) {
         })
     })
 
+    app.get('/getLogSMS', (req, res) => {
+        mssql.connect(db, function (err) {
+            if (err) console.log(err);
+            console.log(req.query)
+            var request = new mssql.Request();
+            request.query("select * from msg_history order by id asc ", function (err, recordset) {
+                if (err) {
+                    res.send(JSON.stringify(err));
+                }
+                else {
+                    res.send({
+                        "message": "sucess",
+                        "data": recordset.recordset
+                    })
+                }
+                mssql.close()
+            })
+        })
+    })
+
+    app.post('/audit',(req,res)=>{
+        mssql.close()
+        let action = req.body.action
+        let userid = req.body.userid
+        let user =req.body.username
+        let note = req.ip
+        let dt = new Date()
+        dt.setHours(dt.getHours() + 7)
+        let trans_id = req.body.trans_id
+        //let dt = date.format('m/d/Y H:M:S:N');
+    
+        mssql.connect(db,function(err){
+            if(err){
+                console.log(err);
+            }
+            else{
+                const insertStatement = 'insert into  [audit_trail] values (@action,@userid,@user,@note,@dt,@trans_id)';
+                const ps = new mssql.PreparedStatement;
+                ps.input('action',mssql.VarChar)
+                ps.input('userid',mssql.VarChar)
+                ps.input('user',mssql.VarChar)
+                ps.input('note',mssql.VarChar)
+                ps.input('dt',mssql.DateTime)
+                ps.input('trans_id',mssql.VarChar)
+                ps.prepare(insertStatement,function(err){
+                if(err){
+                    console.log(err)
+                }
+                else{
+                    ps.execute({ action: action,userid : userid,user : user, note: note, dt: dt,trans_id:trans_id },(err,result)=>{
+                        if(err){
+                                console.log(err)
+                                res.send(JSON.stringify(err))
+                                mssql.close()
+                            }
+                        else{
+                            res.send({
+                                "message":"sucess",
+                                "data": result,
+                            })
+                            mssql.close()
+                            }
+                         })
+                }
+                })
+            }
+        })
+    });
 
     app.post('/loginportal', (req, res) => {
         mssql.close()
@@ -240,6 +308,7 @@ module.exports = function (app, db) {
 
 
     app.post("/toGateway", (req, res) => {
+        mssql.close()
         let id = req.body.id
         let pwd = req.body.pwd
         let msisdn = req.body.msisdn
@@ -304,6 +373,7 @@ module.exports = function (app, db) {
                                         }
                                         else {
                                             res.send(rsp.body)
+                                            mssql.close()
                                         }
                                     })
                                 }
