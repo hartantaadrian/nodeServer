@@ -1,10 +1,9 @@
-const express = require ('express');
-
+const express = require('express');
 const cors = require('cors');
-
 const bodyparser = require('body-parser');
-
-
+const auth = require('basic-auth')
+const https = require('https');
+const fs = require('fs')
 
 
 const dbconf = require('./app/config/config.json');
@@ -23,8 +22,16 @@ const configmssql = {
     database: dbconf.db.database
 };
 
-require('./app/routes')(app,configmssql)
-app.listen( port,()=>{
+require('./app/routes')(app, configmssql)
+app.listen(port, () => {
     console.log(configmssql)
-    console.log("server start at port : " +port)
+    console.log("server start at port : " + port)
 })
+
+var server = https.createServer({
+    key: fs.readFileSync('server.key'),
+    cert: fs.readFileSync('server.cert')
+}, app);
+server.listen(8001, function () {
+    console.log("server running at https://IP_ADDRESS:8001/")
+});

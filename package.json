@@ -22,7 +22,9 @@
   },
   "homepage": "https://github.com/hartantaadrian/nodeServer#readme",
   "dependencies": {
+    "basic-auth": "^2.0.1",
     "body-parser": "^1.18.3",
+    "certbot": "^1.0.0",
     "cors": "^2.8.5",
     "date-and-time": "^0.6.3",
     "express": "^4.16.4",
@@ -33,6 +35,7 @@
     "sequelize": "^4.41.2",
     "sha1": "^1.1.1",
     "tedious": "^2.2.4",
+    "tsscmp": "^1.0.6",
     "unirest": "^0.5.1"
   }
 }
