@@ -17,8 +17,8 @@ module.exports = function (app, db) {
         var valid = true
 
         // Simple method to prevent short-circut and use timing-safe compare
-        valid = compare(name, 'john') && valid
-        valid = compare(pass, 'secret') && valid
+        valid = compare(name, 'jtrustbank') && valid
+        valid = compare(pass, '123456') && valid
 
         return valid
     }
@@ -256,6 +256,7 @@ module.exports = function (app, db) {
                                 }
                                 else if (result.recordset.length === 0) {
                                     res.send({
+                                        responseCode: "13",
                                         message: "app not registered yet"
                                     })
                                     mssql.close();
@@ -274,7 +275,10 @@ module.exports = function (app, db) {
                                         .end(function (rsp) {
                                             if (rsp.error) {
                                                 console.log('GET error', rsp)
-                                                res.send(rsp)
+                                                res.send({
+                                                    "responseCode": "01",
+                                                    "response": "rsp"
+                                                })
                                             }
                                             else {
                                                 let respo = rsp
@@ -307,14 +311,18 @@ module.exports = function (app, db) {
                                                         pstm.execute({ phone: phone, sms: sms, req_from: req_from, req_to: req_to, trx_date: trx_date }, (err, result) => {
                                                             if (err) {
                                                                 console.log(err)
-                                                                res.send(JSON.stringify(err))
+                                                                res.send({
+                                                                    "responseCode": "39",
+                                                                    "reponse": err
+                                                                })
                                                                 mssql.close()
                                                             }
                                                             else {
                                                                 res.send({
-                                                                    "statusCode": respo.statusCode,
+                                                                    "responseCode": 00,
                                                                     "response": respo.body.response
                                                                 })
+                                                                mssql.close()
                                                             }
                                                         })
                                                     }
@@ -333,82 +341,99 @@ module.exports = function (app, db) {
 
 
     app.post("/toGateway", (req, res) => {
-        mssql.close()
-        let id = req.body.id
-        let pwd = req.body.pwd
-        let msisdn = req.body.msisdn
-        let trx_date = req.body.trx_date
-        let chargingCode = req.body.chargingCode
-        let requestId = req.body.requestId
-        let requestContent = req.body.requestContent
-        let operatorCode = req.body.operatorCode
-        let sms = req.body.sms
-        let format = req.body.format
-        let channel = req.body.channel
-        let bankId = req.body.bankId
+        var credentials = auth(req);
+        if (!credentials || !check(credentials.name, credentials.pass)) {
+            res.statusCode = 401
+            res.setHeader('WWW-Authenticate', 'Basic realm="example"')
+            res.end('Access denied')
+        }
+        else {
+            mssql.close()
+            let id = req.body.id
+            let pwd = req.body.pwd
+            let msisdn = req.body.msisdn
+            let trx_date = req.body.trx_date
+            let chargingCode = req.body.chargingCode
+            let requestId = req.body.requestId
+            let requestContent = req.body.requestContent
+            let operatorCode = req.body.operatorCode
+            let sms = req.body.sms
+            let format = req.body.format
+            let channel = req.body.channel
+            let bankId = req.body.bankId
 
-        unirest.get("http://localhost:5024/")
-            .query({
-                'id': id,
-                'pwd': pwd,
-                'msisdn': msisdn,
-                'trx_date': trx_date,
-                'chargingCode': chargingCode,
-                'requestId': requestId,
-                'requestContent': requestContent,
-                'operatorCode': operatorCode,
-                'sms': sms,
-                'format': format,
-                'channel': channel,
-                'bankId': bankId
-            }).end(function (rsp) {
-                if (res.error) {
-                    console.log('GET error', res.error)
-                } else {
+            unirest.get("http://localhost:5024/")
+                .query({
+                    'id': id,
+                    'pwd': pwd,
+                    'msisdn': msisdn,
+                    'trx_date': trx_date,
+                    'chargingCode': chargingCode,
+                    'requestId': requestId,
+                    'requestContent': requestContent,
+                    'operatorCode': operatorCode,
+                    'sms': sms,
+                    'format': format,
+                    'channel': channel,
+                    'bankId': bankId
+                }).end(function (rsp) {
+                    if (rsp.error) {
+                        res.send({
+                            "responseCode":"4",
+                            "response":rsp
+                        })
+                        //console.log('GET error', rsp.error)
+                    } else {
+                        mssql.connect(db, function (err) {
+                            if (err) {
+                                console.log(err)
+                            }
+                            else {
+                                let phone = msisdn
+                                let req_from = bankId
+                                let req_to = "SMS gateway"
+                                let logstatement = 'insert into msg_history values (@phone,@sms,@req_from,@req_to,@trx_date)';
+                                let pstm = new mssql.PreparedStatement;
+                                trx_date = new Date(trx_date)
+                                trx_date.setHours(trx_date.getHours() + 7)
+                                pstm.input('phone', mssql.VarChar)
+                                pstm.input('sms', mssql.VarChar)
+                                pstm.input('req_from', mssql.VarChar)
+                                pstm.input('req_to', mssql.VarChar)
+                                pstm.input('trx_date', mssql.DateTime)
+                                pstm.prepare(logstatement, function (err) {
+                                    if (err) {
+                                        console.log(err)
+                                        //mssql.close();
+                                    }
+                                    else {
+                                        //console.log("asss " + trx_date)
+                                        pstm.execute({ phone: phone, sms: sms, req_from: req_from, req_to: req_to, trx_date: trx_date }, (err, result) => {
+                                            if (err) {
+                                                console.log(err)
+                                                res.send({
+                                                    "responseCode": "39",
+                                                    "reponse": err
+                                                })
+                                                mssql.close()
+                                            }
+                                            else {
+                                                res.send({
+                                                    "responseCode": 00,
+                                                    "response": rsp.body
+                                                })
+                                                mssql.close()
+                                            }
+                                        })
+                                    }
+                                })
+                            }
 
-                    mssql.connect(db, function (err) {
-                        if (err) {
-                            console.log(err);
-                        }
-                        else {
-                            let phone = msisdn
-                            let req_from = bankId
-                            let req_to = "SMS gateway"
-                            let logstatement = 'insert into msg_history values (@phone,@sms,@req_from,@req_to,@trx_date)';
-                            let pstm = new mssql.PreparedStatement;
-                            trx_date = new Date(trx_date)
-                            trx_date.setHours(trx_date.getHours() + 7)
-                            pstm.input('phone', mssql.VarChar)
-                            pstm.input('sms', mssql.VarChar)
-                            pstm.input('req_from', mssql.VarChar)
-                            pstm.input('req_to', mssql.VarChar)
-                            pstm.input('trx_date', mssql.DateTime)
-                            pstm.prepare(logstatement, function (err) {
-                                if (err) {
-                                    console.log(err)
-                                    //mssql.close();
-                                }
-                                else {
-                                    //console.log("asss " + trx_date)
-                                    pstm.execute({ phone: phone, sms: sms, req_from: req_from, req_to: req_to, trx_date: trx_date }, (err, result) => {
-                                        if (err) {
-                                            console.log(err)
-                                            res.send(JSON.stringify(err))
-                                            mssql.close()
-                                        }
-                                        else {
-                                            res.send(rsp.body)
-                                            mssql.close()
-                                        }
-                                    })
-                                }
-                            })
-                        }
+                        })
 
-                    })
-
-                }
-            })
+                    }
+                })
+        }
     })
 
 }
