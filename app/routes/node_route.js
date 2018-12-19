@@ -485,7 +485,7 @@ module.exports = function (app, db) {
                             }
                             else {
                                 let phone = msisdn
-                                let req_from = bankId
+                               let req_from = bankId
                                 let req_to = "SMS gateway"
                                 let logstatement = 'insert into msg_history values (@phone,@sms,@req_from,@req_to,@trx_date)';
                                 let pstm = new mssql.PreparedStatement;
