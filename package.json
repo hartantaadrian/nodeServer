@@ -28,6 +28,7 @@
     "cors": "^2.8.5",
     "date-and-time": "^0.6.3",
     "express": "^4.16.4",
+    "express-xml-bodyparser": "^0.3.0",
     "jsonwebtoken": "^8.4.0",
     "moment": "^2.22.2",
     "mssql": "^4.3.0",
@@ -36,6 +37,7 @@
     "sha1": "^1.1.1",
     "tedious": "^2.2.4",
     "tsscmp": "^1.0.6",
-    "unirest": "^0.5.1"
+    "unirest": "^0.5.1",
+    "xml": "^1.0.1"
   }
 }

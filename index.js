@@ -3,7 +3,8 @@ const cors = require('cors');
 const bodyparser = require('body-parser');
 const auth = require('basic-auth')
 const https = require('https');
-const fs = require('fs')
+const fs = require('fs');
+const xmlparser = require('express-xml-bodyparser');
 
 
 const dbconf = require('./app/config/config.json');
@@ -11,6 +12,7 @@ const dbconf = require('./app/config/config.json');
 const app = express()
 app.use(cors())
 app.use(bodyparser.json());
+app.use(xmlparser());
 
 
 const port = 1996;
